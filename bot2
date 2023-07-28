@@ -1,0 +1,73 @@
+public Move Think(Board board, Timer timer)
+{
+
+
+    int Vantagem(Board board, bool white) //função q retorna a vantagem do branco, se true, ou do preto, se false
+    {
+        int vantagem = ((board.GetPieceList(PieceType.Pawn, white)).Count) + 3*(board.GetPieceList(PieceType.Knight, white).Count + board.GetPieceList(PieceType.Bishop, white).Count) + 5*((board.GetPieceList(PieceType.Rook, white)).Count) + 9*((board.GetPieceList(PieceType.Queen, white)).Count);
+        vantagem -= ((board.GetPieceList(PieceType.Pawn, !white)).Count) + 3*(board.GetPieceList(PieceType.Knight, !white).Count + board.GetPieceList(PieceType.Bishop, !white).Count) + 5*((board.GetPieceList(PieceType.Rook, !white)).Count) + 9*((board.GetPieceList(PieceType.Queen, !white)).Count);
+        return(vantagem);
+        // retorna a vantagem em peças de quem vai jogar agora
+    }
+
+
+    double AnaliseRecursiva(Board board, int n, double a, double b, double c, double d) // função q retorna a vantagem de quem joga em determinado tabuleiro
+    {
+        if(n==0)
+        {
+            return 0; //para n entrar em uma recursão infinita
+        }
+
+        if(board.IsInCheckmate())
+        {
+            return -100_000; //se é mate, a vantagem é gigante para o adversario d quem joga agora
+        }
+
+        Move[] moves = board.GetLegalMoves(); //lista de movimentos legais
+        int vantagem = Vantagem(board, board.IsWhiteToMove); //qual a vantagem para quem joga agora
+        int Njogadas = moves.Length;               //quantas jogadas quem joga agora tem?
+        int Nchecks = 0;                          //quantos cheques quem joga agora pode receber?
+        double VantagemProxJogada = 10_000;      //qual a vantagem de quem joga na proxima jogada
+
+        foreach(Move testmove in moves) //loop dos movimentos validos
+        {
+            board.MakeMove(testmove);
+            double ProximaJogada = -AnaliseRecursiva(board, n-1, a, b, c, d); //retorna a vantagem d quem joga agora na prox jogada
+
+            if(board.IsInCheck()) //conta o número d cheques q podemos receber
+            {
+                Nchecks += 1;
+            }
+
+            if(ProximaJogada < VantagemProxJogada) //pior cenário para quem joga agora
+            {
+                VantagemProxJogada = ProximaJogada; 
+            }
+            board.UndoMove(testmove);
+        }
+
+        return (a*vantagem + b*Njogadas - c*VantagemProxJogada - d*Nchecks);
+
+    }
+
+
+
+    //aqui ta o programa de verdade:
+
+    Move[] moves = board.GetLegalMoves();  //diz os movimentos legais
+    double score = -100;                  //cria a variavel score
+    Move best = moves[0];                //cria a variavel best
+
+    foreach(Move movteste in moves)    //loop
+    {
+        board.MakeMove(movteste);
+        double scoreProxJog = AnaliseRecursiva(board, 3, -10, 1, 9, 2);
+        if(score < scoreProxJog)
+        {
+            score = scoreProxJog;
+            best = movteste;
+        }
+        board.UndoMove(movteste);
+    }
+    return best;
+}

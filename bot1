@@ -1,0 +1,77 @@
+public Move Think(Board board, Timer timer)
+{
+    Move[] moves = board.GetLegalMoves();
+
+    Move best = moves[0];
+    double bestscore = 1000.5f;
+    int minhaspecas = ((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count) + 3*(board.GetPieceList(PieceType.Knight, board.IsWhiteToMove).Count + board.GetPieceList(PieceType.Bishop, board.IsWhiteToMove).Count) + 5*((board.GetPieceList(PieceType.Rook, board.IsWhiteToMove)).Count) + 9*((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count);
+    int adversariopecas = ((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove!)).Count) + 3*(board.GetPieceList(PieceType.Knight, board.IsWhiteToMove!).Count + board.GetPieceList(PieceType.Bishop, board.IsWhiteToMove!).Count) + 5*((board.GetPieceList(PieceType.Rook, board.IsWhiteToMove!)).Count) + 9*((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove!)).Count);
+
+
+    foreach(Move testmove in moves)
+    {
+        board.MakeMove(testmove); //faz o movimento de teste
+
+        Move[] moves2 = board.GetLegalMoves(); //lista d respostas do adversario
+
+        int a = moves2.Length;  //numero de jogadas do adversário
+        int b = board.GetLegalMoves(true).Length;  // número de capituras do adversário
+
+        
+        bool c = true; //c diz se existe mate do adversário na proxima
+        int d = 1000; //d é a soma das capturas e jogadas possíveis no pior cenário
+        int e = 0; //e é o núumero d checks q podemos receber na proxima jogada
+        int perdamax = -100; // quanto valor em peçass perdemos na pior das hipoteses
+        int f = 0; // quantas capturas temos na pior das hipoteses
+        int g = adversariopecas - ((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count) + 3*(board.GetPieceList(PieceType.Knight, board.IsWhiteToMove).Count + board.GetPieceList(PieceType.Bishop, board.IsWhiteToMove).Count) + 5*((board.GetPieceList(PieceType.Rook, board.IsWhiteToMove)).Count) + 9*((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count);
+        foreach(Move testmove2 in moves2) //loop dos movs do adversário
+        {
+            if(board.IsInCheckmate()) //se tem mate, n precisa conferir o resto
+            { 
+                best = testmove;
+                break;
+            }
+            board.MakeMove(testmove2);
+            int dprovisorio = board.GetLegalMoves().Length + board.GetLegalMoves(true).Length;//soma do total de jogadas e capturas possíveis na nossa vez
+            int minhaspecas2 = ((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count) + 3*(board.GetPieceList(PieceType.Knight, board.IsWhiteToMove).Count + board.GetPieceList(PieceType.Bishop, board.IsWhiteToMove).Count) + 5*((board.GetPieceList(PieceType.Rook, board.IsWhiteToMove)).Count) + 9*((board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove)).Count);
+            int perda = minhaspecas - minhaspecas2;
+            int capt = board.GetLegalMoves(true).Length;
+            if(f<capt)
+            {
+                f = capt;
+            }
+            if(perdamax<perda)
+            {
+                perdamax = perda;
+            }
+            if (dprovisorio<d) //se esse caso é ainda mais pessimista q o anterior, ent...
+            {
+                d = dprovisorio;
+            }
+            if(board.IsInCheckmate()) //se existe mate
+            {
+                c = false;
+                board.UndoMove(testmove2);
+                break;
+            }
+            if(board.IsInCheck())
+            {
+                e += 1;
+            }
+            board.UndoMove(testmove2); 
+        }
+        
+        double score = a+b-d-e-f-g+perdamax;
+
+        if((score<bestscore) & c) //aqui decide se é o melhor mov ate agora
+        {
+            best = testmove;
+            bestscore = score;
+        }
+        
+
+        
+        board.UndoMove(testmove); //desfaz o movimento de teste
+    }
+    return best;
+}

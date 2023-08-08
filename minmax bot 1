@@ -7,158 +7,160 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
 
-          int Material(Board board, bool white) //função q retorna a pontuação de material do branco se true e do preto se false
-          {
-              return((board.GetPieceList(PieceType.Pawn, white)).Count) + 3*(board.GetPieceList(PieceType.Knight, white).Count + board.GetPieceList(PieceType.Bishop, white).Count) + 5*((board.GetPieceList(PieceType.Rook, white)).Count) + 9*((board.GetPieceList(PieceType.Queen, white)).Count);
-          }
+
+        int Material(Board board, bool white) //função q retorna a pontuação de material do branco se true e do preto se false
+        {
+            return((board.GetPieceList(PieceType.Pawn, white)).Count) + 3*(board.GetPieceList(PieceType.Knight, white).Count + board.GetPieceList(PieceType.Bishop, white).Count) + 5*((board.GetPieceList(PieceType.Rook, white)).Count) + 9*((board.GetPieceList(PieceType.Queen, white)).Count);
+        }
 
 
-          int QuemJoga(Board board)
-          {
-              if(board.IsWhiteToMove)
-              {
-                  return(1);
-              }
-              return(-1);
-          }
+        int QuemJoga(Board board)
+        {
+            if(board.IsWhiteToMove)
+            {
+                return(1);
+            }
+            return(-1);
+        }
 
-          
-          Move[] MovimentosLegais(Board board)
-          {
-              
-              Move[] moves = board.GetLegalMoves();
+        
+        Move[] MovimentosLegais(Board board)
+        {
+            
+            Move[] moves = board.GetLegalMoves();
 
-              int count = 0;
-              int i = 0;
-              foreach(Move move1 in moves)
-              {
-                  if(move1.IsCapture)
-                  {
-                      Move move2 = moves[count]; //lembrar o movimento q tava no início
-                      moves[count] = move1;      //colocar a captura no inicio
-                      moves[i] = move2;         //colocar da memória para o lugar q o outro tava
-                      count++;
-                  }
-                  i++;
-              }
-              return(moves);
+            int count = 0;
+            int i = 0;
+            foreach(Move move1 in moves)
+            {
+                if(move1.IsCapture)
+                {
+                    Move move2 = moves[count]; //lembrar o movimento q tava no início
+                    moves[count] = move1;      //colocar a captura no inicio
+                    moves[i] = move2;         //colocar da memória para o lugar q o outro tava
+                    count++;
+                }
+                i++;
+            }
+            return(moves);
 
-          }
-          
-          int[] AvaliarLado(Board board)
-          {
-              Move[] moves = board.GetLegalMoves();
+        }
+        
+        int[] AvaliarLado(Board board)
+        {
+            Move[] moves = board.GetLegalMoves();
 
-              int material = Material(board, board.IsWhiteToMove);
-              int AtividadeDasPecas = moves.Length;
-              int ProtecaoDoRei = 0;
-              int VantagemEspacial = 0;
-              foreach(Move move in moves) //Proteção do Rei
-              {
-                  board.MakeMove(move);
-                  if(board.IsInCheck())
-                  {
-                      ProtecaoDoRei += 1;
-                  }
-                  board.UndoMove(move);
-              }
-              PieceList[] lista3 = board.GetAllPieceLists();
-              foreach(PieceList lista2 in lista3)
-              {
-                  foreach(Piece peça in lista2)
-                  {
-                      if(!peça.IsWhite ^ board.IsWhiteToMove)
-                      {
-                          VantagemEspacial += peça.Square.Rank;
-                      }
-                  }
-              }
-              int[] retorno = {material, AtividadeDasPecas, ProtecaoDoRei, VantagemEspacial};
-              return(retorno);
-          }
-
-
-
-          double Avaliar(Board board, int quemjoga)
-          {
-              if(board.IsInCheckmate())
-              {
-                  return(-quemjoga*99_999);
-              }
-              if(board.IsDraw())
-              {
-                  return(0);
-              }
-              int[] jogadorA = AvaliarLado(board);
-
-              bool lembrar = board.IsInCheck();
-
-              board.ForceSkipTurn();
-              int[] jogadorB = AvaliarLado(board);
-
-              if(lembrar)
-              {
-                  jogadorB[2] = 100;
-              }
-
-              board.UndoSkipTurn();
-              return(quemjoga*((jogadorA[0] - jogadorB[0]) + (jogadorA[1] - jogadorB[1]) + (-jogadorA[2] + jogadorB[2]) + (jogadorA[3] - jogadorB[3])/16 ));
-          }
+            int material = Material(board, board.IsWhiteToMove);
+            int AtividadeDasPecas = moves.Length;
+            int ProtecaoDoRei = 0;
+            int VantagemEspacial = 0;
+            foreach(Move move in moves) //Proteção do Rei
+            {
+                board.MakeMove(move);
+                if(board.IsInCheck())
+                {
+                    ProtecaoDoRei += 1;
+                }
+                board.UndoMove(move);
+            }
+            PieceList[] lista3 = board.GetAllPieceLists();
+            foreach(PieceList lista2 in lista3)
+            {
+                foreach(Piece peça in lista2)
+                {
+                    if(!peça.IsWhite ^ board.IsWhiteToMove)
+                    {
+                        VantagemEspacial += peça.Square.Rank;
+                    }
+                }
+            }
+            int[] retorno = {material, AtividadeDasPecas, ProtecaoDoRei, VantagemEspacial};
+            return(retorno);
+        }
 
 
 
+        double Avaliar(Board board, int quemjoga)
+        {
+            if(board.IsInCheckmate())
+            {
+                return(-quemjoga*99_999);
+            }
+            if(board.IsDraw())
+            {
+                return(0);
+            }
+            int[] jogadorA = AvaliarLado(board);
 
+            bool lembrar = board.IsInCheck();
 
-          double MinMax(Board board, int depth, double alpha, double beta, bool numerocontrole, int quemjoga) // white: é o branco q joga
-          {
-              if(depth==0 || board.IsInCheckmate() || board.IsDraw()) //essa é a forma mais rápida, apesar d n ser eficiente nos tolkens
-              {
-                  return(Avaliar(board, quemjoga));
-              }
-              double maxEval = -quemjoga*99_999;
+            board.ForceSkipTurn();
+            int[] jogadorB = AvaliarLado(board);
 
+            if(lembrar)
+            {
+                jogadorB[2] = 100;
+            }
 
-              Move[] moves = MovimentosLegais(board);
-
-
-              Move best = moves[0];                //cria a variavel best
-              foreach(Move move in moves)
-              {
-                  board.MakeMove(move);
-                  var eval = MinMax(board, depth-1, alpha, beta, false, -quemjoga);
-                  board.UndoMove(move);
-                  if((quemjoga*eval)>(quemjoga*maxEval))
-                  {
-                      maxEval = eval;
-                      best = move;
-                  }
-                  if(board.IsWhiteToMove && (eval>alpha))
-                  {
-                      alpha = eval;
-                  }
-                  else if ((!board.IsWhiteToMove) && (beta>eval))
-                  {
-                      beta = eval;
-                  }
-                  if(alpha>=beta)
-                  {
-                      break;
-                  }
-              }
-
-              if(numerocontrole)
-              {
-                  return(Array.IndexOf(moves, best)); 
-              }
-
-              return(maxEval);
-          }
+            board.UndoSkipTurn();
+            return(quemjoga*((jogadorA[0] - jogadorB[0]) + (jogadorA[1] - jogadorB[1]) + (-jogadorA[2] + jogadorB[2]) + (jogadorA[3] - jogadorB[3])/16 ));
+        }
 
 
 
 
 
-          Move[] moves = MovimentosLegais(board);
-          return(moves[(int)MinMax(board, 3, -99_999, 99_999, true, QuemJoga(board))]);
-      }
-  }
+        double MinMax(Board board, int depth, double alpha, double beta, bool numerocontrole, int quemjoga) // white: é o branco q joga
+        {
+            if(depth==0 || board.IsInCheckmate() || board.IsDraw()) //essa é a forma mais rápida, apesar d n ser eficiente nos tolkens
+            {
+                return(Avaliar(board, quemjoga));
+            }
+            double maxEval = -quemjoga*99_999;
+
+
+            Move[] moves = MovimentosLegais(board);
+
+
+            Move best = moves[0];                //cria a variavel best
+            foreach(Move move in moves)
+            {
+                board.MakeMove(move);
+                var eval = MinMax(board, depth-1, alpha, beta, false, -quemjoga);
+                board.UndoMove(move);
+                if((quemjoga*eval)>(quemjoga*maxEval))
+                {
+                    maxEval = eval;
+                    best = move;
+                }
+                if(board.IsWhiteToMove && (eval>alpha))
+                {
+                    alpha = eval;
+                }
+                else if ((!board.IsWhiteToMove) && (beta>eval))
+                {
+                    beta = eval;
+                }
+                if(alpha>=beta)
+                {
+                    break;
+                }
+            }
+
+            if(numerocontrole)
+            {
+                return(Array.IndexOf(moves, best)); 
+            }
+
+            return(maxEval);
+        }
+
+
+
+
+
+        Move[] moves = MovimentosLegais(board);
+        return(moves[(int)MinMax(board, 3, -99_999, 99_999, true, QuemJoga(board))]);
+
+    }
+}
